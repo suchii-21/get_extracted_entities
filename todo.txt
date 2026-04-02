@@ -1,6 +1,0 @@
--- Change class and var names
--- give commnets for class and var
--- push to git for approval from TL
--- need to give json format for the AI
--- what about the .txt -- should we consider the text count or somthing?
--- need to add .txt to body -- pending
