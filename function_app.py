@@ -11,7 +11,7 @@ def append_to_txt(email_session_id, content):
     file_name = f"{email_session_id}_email_body_file.txt"
     file_path = os.path.join(tmp_dir, file_name)
 
-    with open(file_name , "a", encoding="utf-8") as f:
+    with open(file_path, "a", encoding="utf-8") as f:
  
             f.write(content+ "\n")
     logging.info(f"[EMAIL BODY] Appended content to '{file_path}'")
@@ -27,7 +27,7 @@ def append_all_logs(email_session_id,content):
     file_name = f"{email_session_id}_all_logs.txt"
     file_path = os.path.join(tmp_dir, file_name)
 
-    with open(file_name , "a", encoding="utf-8") as f:
+    with open(file_path, "a", encoding="utf-8") as f:
  
             f.write(content+ "\n")
     logging.info(f"[EMAIL BODY] Appended content to '{file_path}'")
