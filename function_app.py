@@ -1,19 +1,38 @@
 import azure.functions as func
-import logging, json, base64
+import logging, json, base64, os
 
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 def append_to_txt(email_session_id, content):
+    tmp_dir = "/tmp/email_sessions"
+    os.makedirs(tmp_dir, exist_ok=True)
 
-    with open(f"{email_session_id}email_body_file.txt", "a", encoding="utf-8") as f:
+    file_name = f"{email_session_id}_email_body_file.txt"
+    file_path = os.path.join(tmp_dir, file_name)
+
+    with open(file_name , "a", encoding="utf-8") as f:
  
             f.write(content+ "\n")
+    logging.info(f"[EMAIL BODY] Appended content to '{file_path}'")
+
+    return file_path
 
 #append all logs to the 
 def append_all_logs(email_session_id,content):
-    with open(f"{email_session_id}all_logs.txt", "a",encoding="utf-8") as f:
-        f.write(content+ "\n")
+
+    tmp_dir ="/tmp/email_sessions"
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    file_name = f"{email_session_id}_all_logs.txt"
+    file_path = os.path.join(tmp_dir, file_name)
+
+    with open(file_name , "a", encoding="utf-8") as f:
+ 
+            f.write(content+ "\n")
+    logging.info(f"[EMAIL BODY] Appended content to '{file_path}'")
+
+    return file_path
 
 
 @app.route(route="email_summary")
@@ -89,7 +108,8 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
         logging.info(f"Email session id  : {email_session_id}")
         # logging.info(f"Attachments in payload: {len(attachments_raw)}")
 
-        append_to_txt(email_session_id,email_body)
+        file_path = append_to_txt(email_session_id,email_body)
+        
         append_all_logs(email_session_id,f'email_pay load : {email_payload}')
 
         try:
@@ -97,7 +117,7 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
             blob_result =  blob_clss.uploading_attachments_to_blob(email_session_id,
                                                                               attachments)
             extracted_contents = blob_result.get("extracted_contents", {})
-            blob_clss.upload_email_body(f'{email_session_id}email_body_file.txt',email_session_id)
+            blob_clss.upload_email_body(file_path, email_session_id)
             append_all_logs(email_session_id,f'extracted_content is : {extracted_contents}')
  
             if not extracted_contents:
@@ -106,8 +126,6 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
             combined_content_parts = []
  
 
-            # if email_body:
-            #     combined_content_parts.append(f"[EMAIL BODY]\n{email_body}")
  
 
             for file_name, content in extracted_contents.items():
@@ -135,8 +153,8 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
                 get_ai_response.update(get_nature_of_fraud) # type: ignore
             
                 # get_ai_response['nature_of_fraud'] =get_nature_of_fraud
-                append_all_logs(email_session_id, f'AI  response is : {get_ai_response}')
-                blob_clss.upload_email_body(f'{email_session_id}all_logs.txt',email_session_id)
+                file_path =append_all_logs(email_session_id, f'AI  response is : {get_ai_response}')
+                blob_clss.upload_email_body(file_path, email_session_id)
                 return func.HttpResponse( json.dumps(get_ai_response),
                                         mimetype="application/json",
                                         status_code=200)

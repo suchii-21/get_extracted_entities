@@ -449,45 +449,46 @@ class BlobAttachmentHandler:
 
     def upload_email_body(self, txt_name, email_session_id):
         """
-        uploading the email body as a .txt to the blob
+        Uploads the local .txt file to Azure Blob Storage
         """
-        local_file = txt_name
-        blob_path  = f"{email_session_id}/{local_file}"
+        blob_path = f"{email_session_id}/{os.path.basename(txt_name)}"
 
         try:
-            with open(local_file, "rb") as f:
+            with open(txt_name, "rb") as f:
                 file_bytes = f.read()
 
             blob_client = self.container_client.get_blob_client(blob_path)
             blob_client.upload_blob(file_bytes, overwrite=True)
-            logging.info(f"[EMAIL BODY] Uploaded '{local_file}' → '{blob_path}'")
+            logging.info(f"[EMAIL BODY] Uploaded '{txt_name}' → '{blob_path}'")
 
         except FileNotFoundError:
-            logging.error(
-                f"[EMAIL BODY] '{local_file}' not found locally — "
-                f"was append_to_txt() called before this?"
-            )
+            logging.error( 'File not found' )
         except Exception as e:
             logging.error(f"[EMAIL BODY] Failed to upload email body to blob: {e}")
 
     def upload_extracted_content(self, email_session_id: str) -> None:
-
-        local_file = f"{email_session_id[:4]}content_json.json"
-        blob_path  = f"{email_session_id}/{local_file}"
+        """
+        Uploads the locally written content_json.json from /tmp to Azure Blob Storage
+        """
+        tmp_dir    = "/tmp/email_sessions"
+        local_file = os.path.join(tmp_dir, "content_json.json")
+        blob_path  = f"{email_session_id}/content_json.json"
 
         try:
+            if not os.path.exists(local_file):
+                logging.error(
+                    f"[EXTRACTED CONTENT] '{local_file}' not found — "
+                    f"was write_to_json() called before this?"
+                )
+                return
+
             with open(local_file, "rb") as f:
                 file_bytes = f.read()
 
             blob_client = self.container_client.get_blob_client(blob_path)
             blob_client.upload_blob(file_bytes, overwrite=True)
-            logging.info(f"[EXTRACTED CONTENT] Uploaded '{local_file}' → '{blob_path}'")
+            logging.info(f"[EXTRACTED CONTENT] Uploaded '{local_file}' to  '{blob_path}'")
 
-        except FileNotFoundError:
-            logging.error(
-                f"[EXTRACTED CONTENT] '{local_file}' not found — "
-                f"was write_to_json() called before this?"
-            )
         except Exception as e:
             logging.error(f"[EXTRACTED CONTENT] Failed to upload content JSON: {e}")
 

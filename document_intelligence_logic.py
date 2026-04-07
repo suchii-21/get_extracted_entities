@@ -59,8 +59,10 @@ class ExtractingContent:
         return None
 
 
-    def write_to_json(self, extracted_content, file_name: str, json_file: str = "content_json.json") -> None:
+    def write_to_json(self, extracted_content, file_name: str, json_file: str = "/tmp/email_sessions/content_json.json") -> None:
         try:
+            os.makedirs("/tmp/email_sessions", exist_ok=True)
+
             if os.path.exists(json_file):
                 with open(json_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
@@ -71,6 +73,8 @@ class ExtractingContent:
 
             with open(json_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
+
+            logging.info(f"[JSON] Written '{file_name}' to '{json_file}'")
 
         except (OSError, json.JSONDecodeError) as e:
             logging.error(f"Failed to write to JSON file '{json_file}': {e}")
