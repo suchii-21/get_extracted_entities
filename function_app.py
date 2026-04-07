@@ -123,20 +123,33 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
             )
 
  
+            try:
+                get_ai_response = ai_class.get_extraction(email_session_id,email_body,combined_content )
+                # get_summarised_query = ai_class.get_summarised_query(email_session_id, combined_content)
+                from vector_search import get_top_chunk
+                vclss = get_top_chunk()
+                result = vclss.retriveal_of_top_chunk(combined_content)
 
-            get_ai_response = ai_class.get_extraction(email_session_id,email_body,combined_content )
-            # get_summarised_query = ai_class.get_summarised_query(email_session_id, combined_content)
-            from vector_search import get_top_chunk
-            vclss = get_top_chunk()
-            result = vclss.retriveal_of_top_chunk(combined_content)
-
+                
+                get_nature_of_fraud = ai_class.get_fraud_type(email_session_id,result)
+                get_ai_response.update(get_nature_of_fraud) # type: ignore
             
-            get_nature_of_fraud = ai_class.get_fraud_type(email_session_id,result)
-            append_all_logs(email_session_id, f'AI  response is : {get_ai_response}')
-            blob_clss.upload_email_body(f'{email_session_id}all_logs.txt',email_session_id)
-            return func.HttpResponse( json.dumps(get_nature_of_fraud),
-                                     mimetype="application/json",
-                                     status_code=200)
+                # get_ai_response['nature_of_fraud'] =get_nature_of_fraud
+                append_all_logs(email_session_id, f'AI  response is : {get_ai_response}')
+                blob_clss.upload_email_body(f'{email_session_id}all_logs.txt',email_session_id)
+                return func.HttpResponse( json.dumps(get_ai_response),
+                                        mimetype="application/json",
+                                        status_code=200)
+            except Exception as e:
+                logging.error(f'Failed to get the response')
+                return func.HttpResponse(
+                json.dumps({
+                    "error":   "Internal server error",
+                    "message": str(e)
+                }),
+                mimetype="application/json",
+                status_code=500
+            ) 
         except Exception as e:
             logging.error(f"Unexpected error: {str(e)}", exc_info=True)
             return func.HttpResponse(
@@ -147,13 +160,6 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
                 mimetype="application/json",
                 status_code=500
             )
-
-
-
-
-
-
-
 
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}", exc_info=True)

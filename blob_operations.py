@@ -14,13 +14,14 @@ load_dotenv()
 
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
+from azure.identity import ClientSecretCredential
 
 
 
 
 MAX_PAGES      = 5        # Max allowed pages for PDF / DOCX
-WORDS_PER_PAGE = 250      # Proxy ratio used when estimating DOCX page count
-MAX_FILE_SIZE  = 5 * 1024 * 1024  # 5 MB in bytes
+WORDS_PER_PAGE = 500      # Proxy ratio used when estimating DOCX page count
+MAX_FILE_SIZE  = 15 * 1024 * 1024  # 15 MB in bytes
 
 allowed_content_types = {
     "application/pdf",
@@ -54,7 +55,6 @@ EXTENSION_TO_CONTENT_TYPE = {
     ".jpg":  "image/jpeg",
     ".jpeg": "image/jpeg",
     ".png":  "image/png",
-    ".heif": "image/heif",
     ".heic": "image/heic",
 }
 
@@ -184,7 +184,11 @@ class BlobAttachmentHandler:
 
         self.keyvault_name = os.getenv('keyvault_url')
         self.kv_uri = f"https://{self.keyvault_name}.vault.azure.net"
-        self.credential = DefaultAzureCredential()
+        self.credential = ClientSecretCredential(
+            tenant_id= os.getenv('AZURE_TENANT_ID'), # type: ignore
+            client_id= os.getenv('AZURE_CLIENT_ID'), # type: ignore
+            client_secret=os.getenv('AZURE_CLIENT_SECRET') # type: ignore
+        )
 
         self.kv_client = SecretClient(vault_url=self.kv_uri, credential=self.credential)
 
@@ -268,16 +272,16 @@ class BlobAttachmentHandler:
                         })
                         continue
 
-                    # Use the actual byte length as file_size for ZIP members
+                    
                     inner_file_size = len(inner_bytes)
-
+                    #Extract again if zip folder is available inside the zip
                     if content_type == "application/zip":
                         self._extract_and_upload_zip(
                             email_session_id, inner_name, inner_bytes, result
                         )
                         continue
 
-                    # Images/txt in ZIP → straight to DI, skip blob upload
+                    
                     if content_type.lower() in DI_PASSTHROUGH_TYPES:
                         logging.info(
                             f"[ZIP] '{inner_name}' is passthrough type "

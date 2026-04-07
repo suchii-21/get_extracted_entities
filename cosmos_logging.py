@@ -4,7 +4,8 @@ from azure.cosmos import CosmosClient
 from datetime import datetime
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
-
+from dotenv import load_dotenv
+load_dotenv() 
 
 class CosmosLogs:
     def __init__(self) :

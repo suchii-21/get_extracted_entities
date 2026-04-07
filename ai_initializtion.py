@@ -1,10 +1,15 @@
 import os, logging, json
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AzureOpenAI
+from azure.identity import ClientSecretCredential
 from dotenv import load_dotenv
 load_dotenv()
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
+from azure.appconfiguration.provider import (
+    load,
+    SettingSelector
+)
 
 # try:
 #     from cosmos_logging import CosmosLogs
@@ -17,17 +22,25 @@ class AIInitializtion:
     def __init__(self):
         self.keyvault_name = os.getenv('keyvault_url')
         self.kv_uri = f"https://{self.keyvault_name}.vault.azure.net"
-        self.credential = DefaultAzureCredential()
+        self.credential = ClientSecretCredential(
+            tenant_id= os.getenv('AZURE_TENANT_ID'), # type: ignore
+            client_id= os.getenv('AZURE_CLIENT_ID'), # type: ignore
+            client_secret=os.getenv('AZURE_CLIENT_SECRET') # type: ignore
+        )
 
         self.kv_client = SecretClient(vault_url=self.kv_uri, credential=self.credential)
 
         self.azure_openai_endpoint = self.get_kv_secrets('azure-endpoint')
         self.azure_openai_version = self.get_kv_secrets('api-version')
         self.deployment_name = self.get_kv_secrets('deploymentname')
+        self.azure_endpoint = self.get_kv_secrets('app-config-endpoint')
+        self.config = load(endpoint = self.azure_endpoint,  # type: ignore
+                           credential = self.credential)
         
-        self.entities_extraction_prompt = os.getenv('entities_extraction_prompt')
-        self.nature_of_fraud_detection = os.getenv('nature_of_fraud_detection')
-        self.get_summarised_content_prompt = os.getenv('get_summarised_content_prompt')
+        # self.entities_extraction_prompt =  os.getenv('entities_extraction_prompt')
+        self.nature_of_fraud_detection = self.config['nature_of_fraud_detection']
+        self.entities_extraction_prompt = self.config['entities_extraction_prompt']
+        # self.get_summarised_content_prompt = os.getenv('get_summarised_content_prompt')
         self.token_provider = get_bearer_token_provider(
                         self.credential,
                         "https://cognitiveservices.azure.com/.default"
@@ -78,14 +91,15 @@ class AIInitializtion:
                     {"role": "system", "content": self.entities_extraction_prompt + "\nAlways respond with a valid JSON object."}, # type: ignore
                     {"role": "user", "content": f'#extractedcontent# is : {extracted_content}, and ##emailbody## is : {email_body}'}
                 ],
-                temperature=0,
+                temperature=0, # Need to keep it app configuration service
                 response_format={"type": "json_object"}
             )
 
             raw_output = response.choices[0].message.content
             json_output = json.loads(raw_output) # type: ignore
+            logging.warning(f'Extracted entities for the session id : {session_id} are : {json_output}')
 
-            required_fields = ['description', 'adib_issaffinvolved', 'adib_staffid', 'nature_of_fraud', 'adib_amount', 'customer_name'] 
+            required_fields = ['description', 'adib_issaffinvolved', 'adib_staffid', 'adib_amount', 'customer_name'] 
 
 
             if json_output and isinstance(next(iter(json_output.values())), dict):
@@ -114,36 +128,38 @@ class AIInitializtion:
 
         except Exception as e:
             logging.error(f'Failed to fetch response due to: {e}')
-            return 'Failed to Extract Entities'
+            return {"description" : '',
+                    'adib_issaffinvolved' : '',
+                    'adib_staffid' : '',
+                    'adib_amount': '',
+                    'customer_name': '' }
         
-    def get_summarised_query(self, email_session_id, extracted_content):
-        try:
-            response = self.azure_model_client.chat.completions.create(
-            model=self.deployment_name, # type: ignore
-            messages=[
-                {"role": "system", "content": self.get_summarised_content_prompt + "\nAlways respond with a valid JSON object."}, # type: ignore
-                {"role": "user", "content": f'#extractedcontent# is : {extracted_content}'}
-            ],
-            temperature=0,
-            response_format={"type": "json_object"}
-        )
+    # def get_summarised_query(self, email_session_id, extracted_content):
+    #     try:
+    #         response = self.azure_model_client.chat.completions.create(
+    #         model=self.deployment_name, # type: ignore
+    #         messages=[
+    #             {"role": "system", "content": self.get_summarised_content_prompt + "\nAlways respond with a valid JSON object."}, # type: ignore
+    #             {"role": "user", "content": f'#extractedcontent# is : {extracted_content}'}
+    #         ],
+    #         temperature=0,
+    #         response_format={"type": "json_object"}
+    #     )
 
-            raw_output = response.choices[0].message.content
-            return raw_output
+    #         raw_output = response.choices[0].message.content
+    #         return raw_output
 
-        except Exception as e:
+    #     except Exception as e:
 
-            logging.error(f'Failed to get the summary of the extracted content   due to : {e}')
-            return None
+    #         logging.error(f'Failed to get the summary of the extracted content   due to : {e}')
+    #         return None
 
     def get_fraud_type(self,session_id,extracted_content):
         try:
             response = self.azure_model_client.chat.completions.create(
             model=self.deployment_name, # type: ignore
             messages=[
-                {"role": "system", "content": """You are an Fraud Type  detector,  based on the ##extracted_content## return the fruad type, only return the fraud type without returning any other information.Always respond with a valid JSON object.
-                 ##Example##
-                nature_of_fraud : signature forgery."""}, # type: ignore
+                {"role": "system", "content": self.nature_of_fraud_detection}, # type: ignore
                 {"role": "user", "content": f'#extractedcontent# is : {extracted_content}'}
             ],
             temperature=0,
@@ -151,7 +167,9 @@ class AIInitializtion:
         )
 
             raw_output = response.choices[0].message.content
-            return raw_output
+            json_output = json.loads(raw_output) # type: ignore
+            logging.warning(f'email session id : {session_id} nature of fraud is : {json_output}')
+            return json_output
         except Exception as e:
             logging.error(f'Failed to get the nature of fraud due to : {e}')
-            return None
+            return {'nature_of_fraud': ''}

@@ -14,3 +14,4 @@ azure-core
 python-dotenv
 azure-search-documents 
 azure-keyvault-secrets
+azure-appconfiguration-provider

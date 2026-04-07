@@ -1,5 +1,5 @@
 import os
-from azure.identity import DefaultAzureCredential
+from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 from azure.search.documents.models import (
     VectorizableTextQuery,
@@ -9,14 +9,19 @@ from azure.search.documents.models import (
 )
 from azure.search.documents import (SearchClient,SearchItemPaged)
 from azure.search.documents.indexes import SearchIndexClient 
-
+from dotenv import load_dotenv
+load_dotenv() 
 
 class get_top_chunk:
     def __init__(self) :
        
         self.keyvault_name = os.getenv('keyvault_url')
         self.kv_uri = f"https://{self.keyvault_name}.vault.azure.net"
-        self.credential = DefaultAzureCredential()
+        self.credential = ClientSecretCredential(
+            tenant_id= os.getenv('AZURE_TENANT_ID'), # type: ignore
+            client_id= os.getenv('AZURE_CLIENT_ID'), # type: ignore
+            client_secret=os.getenv('AZURE_CLIENT_SECRET') # type: ignore
+        )
 
         self.kv_client = SecretClient(vault_url=self.kv_uri, credential=self.credential)
         self.index_name =  self.get_kv_secrets('get-index-name')
@@ -45,9 +50,9 @@ class get_top_chunk:
         results=self.search_client.search(
         search_text=query,
         vector_queries=[vector_query],
-        select=['title','chunk','parent_id'],
+        select=['title','chunk','parent_id','confidential'],
         query_type=QueryType.SEMANTIC,
-        semantic_configuration_name='legacy-data-semantic-configuration', 
+        semantic_configuration_name='legacy-semantic-config', 
         query_caption=QueryCaptionType.EXTRACTIVE,
         query_answer=QueryAnswerType.EXTRACTIVE,
         top=3
