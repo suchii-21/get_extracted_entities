@@ -89,10 +89,11 @@ class AIInitializtion:
                 model=self.deployment_name, # type: ignore
                 messages=[
                     {"role": "system", "content": self.entities_extraction_prompt + "\nAlways respond with a valid JSON object."}, # type: ignore
-                    {"role": "user", "content": f'##combined_content## is : {extracted_content}'}
+                    {"role": "user", "content": f'##extracted_content##  : {extracted_content}'}
+                    
                      #extractedcontent# is : {extracted_content}, and ##emailbody## is : {email_body}'}
                 ],
-                temperature=0, # Need to keep it app configuration service
+                temperature=0, 
                 response_format={"type": "json_object"}
             )
 
