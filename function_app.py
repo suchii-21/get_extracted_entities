@@ -1,6 +1,6 @@
 import azure.functions as func
 import logging, json, base64, os
-
+from vector_search import get_top_chunk
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -125,14 +125,16 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
 
             combined_content_parts = []
  
-
  
 
             for file_name, content in extracted_contents.items():
                 if content:
                     combined_content_parts.append(f"[ATTACHMENT: {file_name}]\n{content}")
  
-            combined_content = "\n\n---\n\n".join(combined_content_parts)
+            combined_content_docs = "\n\n---\n\n".join(combined_content_parts)
+        
+            combined_content =  f'email body and subject is : {email_body}, and the extracted content from the attachment is : {combined_content_docs}'
+            
  
             logging.info(
                 f"[SESSION {email_session_id}] Sending combined content to AI. "
@@ -142,14 +144,19 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
 
  
             try:
-                get_ai_response = ai_class.get_extraction(email_session_id,email_body,combined_content )
+                get_ai_response = ai_class.get_extraction(email_session_id,combined_content )
+                logging.warning('recived ai response')
                 # get_summarised_query = ai_class.get_summarised_query(email_session_id, combined_content)
-                from vector_search import get_top_chunk
-                vclss = get_top_chunk()
-                result = vclss.retriveal_of_top_chunk(combined_content)
-
+                try:
+                    vclss = get_top_chunk()
+                    logging.warning(f'sending combined content to the vector : {combined_content[:50]}')
+                    result = vclss.retriveal_of_top_chunk(combined_content)
+                    get_nature_of_fraud = ai_class.get_fraud_type(email_session_id,result)
+                except Exception as e:
+                    logging.warning(f'Failed to retrive the top chunks, sending an empty string')
+                    get_nature_of_fraud = {'nature_of_fraud': ''}
                 
-                get_nature_of_fraud = ai_class.get_fraud_type(email_session_id,result)
+                
                 get_ai_response.update(get_nature_of_fraud) # type: ignore
             
                 # get_ai_response['nature_of_fraud'] =get_nature_of_fraud

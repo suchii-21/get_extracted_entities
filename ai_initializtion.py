@@ -83,13 +83,14 @@ class AIInitializtion:
             print(f"Error fetching secret {secret_name}: {str(e)}")
             return None
 
-    def get_extraction(self, session_id, email_body, extracted_content):
+    def get_extraction(self, session_id, extracted_content):
         try:
             response = self.azure_model_client.chat.completions.create(
                 model=self.deployment_name, # type: ignore
                 messages=[
                     {"role": "system", "content": self.entities_extraction_prompt + "\nAlways respond with a valid JSON object."}, # type: ignore
-                    {"role": "user", "content": f'#extractedcontent# is : {extracted_content}, and ##emailbody## is : {email_body}'}
+                    {"role": "user", "content": f'##combined_content## is : {extracted_content}'}
+                     #extractedcontent# is : {extracted_content}, and ##emailbody## is : {email_body}'}
                 ],
                 temperature=0, # Need to keep it app configuration service
                 response_format={"type": "json_object"}

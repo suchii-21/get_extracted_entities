@@ -1,4 +1,4 @@
-import os
+import os, logging
 from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 from azure.search.documents.models import (
@@ -41,36 +41,40 @@ class get_top_chunk:
             return None
         
     def retriveal_of_top_chunk(self, query):
-        vector_query=VectorizableTextQuery(
-        text=query,
-        k=5,
-        fields='text_vector',
-        exhaustive=True
-    ) 
-        results=self.search_client.search(
-        search_text=query,
-        vector_queries=[vector_query],
-        select=['title','chunk','parent_id','confidential'],
-        query_type=QueryType.SEMANTIC,
-        semantic_configuration_name='legacy-semantic-config', 
-        query_caption=QueryCaptionType.EXTRACTIVE,
-        query_answer=QueryAnswerType.EXTRACTIVE,
-        top=3
-    ) 
-        print(results)
-        # return results.get_answers()
-        context_chunks = []
-        for result in results:
-            chunk = result.get('chunk')
-            if chunk:
-                context_chunks.append(chunk)
+        try:
+            vector_query=VectorizableTextQuery(
+            text=query,
+            k=5,
+            fields='text_vector',
+            exhaustive=True
+        ) 
+            results=self.search_client.search(
+            search_text=query,
+            vector_queries=[vector_query],
+            select=['title','chunk','parent_id','confidential'],
+            query_type=QueryType.SEMANTIC,
+            semantic_configuration_name='legacy-semantic-config', 
+            query_caption=QueryCaptionType.EXTRACTIVE,
+            query_answer=QueryAnswerType.EXTRACTIVE,
+            top=3
+        ) 
+            print(results)
+            # return results.get_answers()
+            context_chunks = []
+            for result in results:
+                chunk = result.get('chunk')
+                if chunk:
+                    context_chunks.append(chunk)
 
-        semantic_answers = results.get_answers()
-        if semantic_answers:
-            for ans in semantic_answers:
-                if ans.text not in context_chunks:
-                    context_chunks.append(ans.text)
-        return "\n\n".join(context_chunks)
+            semantic_answers = results.get_answers()
+            if semantic_answers:
+                for ans in semantic_answers:
+                    if ans.text not in context_chunks:
+                        context_chunks.append(ans.text)
+            return "\n\n".join(context_chunks)
+        except Exception as e:
+            logging.error(f'Failed to return the top chunks due to : {e}')
+            return ''
     
 
 
