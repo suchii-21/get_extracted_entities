@@ -155,13 +155,15 @@ class AIInitializtion:
     #         logging.error(f'Failed to get the summary of the extracted content   due to : {e}')
     #         return None
 
-    def get_fraud_type(self,session_id,extracted_content):
+    def get_fraud_type(self,description, session_id,extracted_content):
+                      
         try:
             response = self.azure_model_client.chat.completions.create(
             model=self.deployment_name, # type: ignore
             messages=[
                 {"role": "system", "content": self.nature_of_fraud_detection}, # type: ignore
-                {"role": "user", "content": f'#extractedcontent# is : {extracted_content}'}
+                {"role": "user", "content": f'#extractedcontent# is : {extracted_content}, description is : {description}'}
+                 
             ],
             temperature=0,
             response_format={"type": "json_object"}
