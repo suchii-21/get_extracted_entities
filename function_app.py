@@ -94,7 +94,8 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
         email_body_raw        = email_payload.get("Body", "")           
         attachments_raw   = email_payload.get("Attachments", [])
         
-        email_body = f'email subject is : {email_subject}, and email body is : {email_body_raw}'
+        email_body = email_subject + "\n\n" + email_body_raw
+        logging.warning(f'complete email body is : email_body')
         # Deseralizing to   python object
         if isinstance(attachments_raw, str):
             try:
