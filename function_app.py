@@ -142,7 +142,7 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
                 f"Total chars: {len(combined_content)}"
             )
 
- 
+            logging.warning(f'Sending the combined content to the AI : {combined_content}')
             try:
                 get_ai_response = ai_class.get_extraction(email_session_id,combined_content )
                 logging.warning('recived ai response')
