@@ -33,8 +33,8 @@ class AIInitializtion:
         self.azure_openai_endpoint = self.get_kv_secrets('azure-endpoint')
         self.azure_openai_version = self.get_kv_secrets('api-version')
         self.deployment_name = self.get_kv_secrets('deploymentname')
-        self.azure_endpoint = self.get_kv_secrets('app-config-endpoint')
-        self.config = load(endpoint = self.azure_endpoint,  # type: ignore
+        self.app_config_endpoint = self.get_kv_secrets('app-config-endpoint')
+        self.config = load(endpoint = self.app_config_endpoint,  # type: ignore
                            credential = self.credential)
         
         # self.entities_extraction_prompt =  os.getenv('entities_extraction_prompt')
