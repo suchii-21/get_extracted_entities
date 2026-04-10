@@ -176,4 +176,4 @@ class AIInitializtion:
             return json_output
         except Exception as e:
             logging.error(f'Failed to get the nature of fraud due to : {e}')
-            return {'nature_of_fraud': ''}
+            return {'nature_of_fraud': 'no_nature_of_fraud'}
