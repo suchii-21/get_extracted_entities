@@ -1,6 +1,6 @@
 import os, logging, json
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from openai import AzureOpenAI
+from openai import AzureOpenAI, APIError
 from azure.identity import ClientSecretCredential
 from dotenv import load_dotenv
 load_dotenv()
@@ -127,6 +127,14 @@ class AIInitializtion:
                     logging.info('All fields are present')
 
             return json_output   # return dict, not the raw string
+        except APIError as e:
+            if e.status_code == 400 and "content_filter" in str(e): # type: ignore
+                logging.error("Request blocked by content filter")
+                return {"description" : '',
+                    'adib_issaffinvolved' : '',
+                    'adib_staffid' : '',
+                    'adib_amount': '',
+                    'customer_name': '' }
 
         except Exception as e:
             logging.error(f'Failed to fetch response due to: {e}')
@@ -174,6 +182,11 @@ class AIInitializtion:
             json_output = json.loads(raw_output) # type: ignore
             logging.warning(f'email session id : {session_id} nature of fraud is : {json_output}')
             return json_output
+        
+        except APIError as e:
+            if e.status_code == 400 and "content_filter" in str(e): # type: ignore
+                logging.error("Request blocked by content filter")
+                return {'nature_of_fraud': 'no_nature_of_fraud'}
         except Exception as e:
             logging.error(f'Failed to get the nature of fraud due to : {e}')
             return {'nature_of_fraud': 'no_nature_of_fraud'}
