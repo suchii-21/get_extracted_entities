@@ -152,8 +152,9 @@ def email_summary(req: func.HttpRequest) -> func.HttpResponse:
                     vclss = get_top_chunk()
                     logging.warning(f'sending combined content to the vector : {combined_content[:50]}')
                     result = vclss.retriveal_of_top_chunk( combined_content)
+                    logging.warning(f'got chunks from the index & sening to get response : {result}')
                     get_nature_of_fraud = ai_class.get_fraud_type( get_ai_response['description'],email_session_id,result)
-                   
+                    logging.warning(f'nature_of fraud : {get_nature_of_fraud}')
                     
                 except Exception as e:
                     logging.warning(f'Failed to retrive the top chunks, sending an empty string')
