@@ -1,4 +1,4 @@
-name: Build and deploy Python project to Azure Function App - getemailentitiesFA
+name: Build and deploy Python project to Azure Function App - getentities
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'getemailentitiesFA'   # Your function app name
+  AZURE_FUNCTIONAPP_NAME: 'getentities'   # Your function app name
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'    # Path to your function app project
   PYTHON_VERSION: '3.11'                 # Python version
 
